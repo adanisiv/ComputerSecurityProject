@@ -345,6 +345,17 @@ def login():
             errors["username"] = lock_message(user)
             return render_template("login.html", values=values, errors=errors)
 
+        # SQLi BYPASS: if the SQL returned a different user than was typed,
+        # injection occurred → skip the password check and log straight in.
+        # Attack: username = ' OR '1'='1' LIMIT 1 --
+        # The query ignores the username and returns the first row in the table.
+        if row["username"] != username:
+            clear_lockout(user)
+            db.session.commit()
+            session["user_id"] = user.id
+            flash("Logged in successfully.")
+            return redirect(url_for("system_screen"))
+
         if password_to_hmac(password, user.salt) != user.password_hmac:
             register_failed_attempt(user)
             db.session.commit()
@@ -511,10 +522,19 @@ def system_screen():
             else:
                 # SQLI VULNERABLE – all three fields injected into INSERT VALUES
                 # XSS  VULNERABLE – first_name / last_name stored without sanitization
+                #
+                # Note: single quotes in name fields are doubled ('')  so the raw SQL
+                # does not break — this is the naive "fix" many developers apply.
+                # It prevents a SQL syntax error but DOES NOT prevent XSS because
+                # the content is still rendered raw via | safe in the template.
+                # The id_number field is left completely unescaped for the duplicate-
+                # check injection demo.
+                fn_sql = first_name.replace("'", "''")
+                ln_sql = last_name.replace("'", "''")
                 db.session.execute(
                     text(
                         f"INSERT INTO customer (first_name, last_name, id_number) "
-                        f"VALUES ('{first_name}', '{last_name}', '{id_number}')"
+                        f"VALUES ('{fn_sql}', '{ln_sql}', '{id_number}')"
                     )
                 )
                 db.session.commit()

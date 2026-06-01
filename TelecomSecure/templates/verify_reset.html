@@ -1,35 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Verify Reset Code — Communication_LTD{% endblock %}
-{% block content %}
-<div class="auth-wrapper">
-  <div class="auth-card">
-    <h1 class="auth-title">Enter reset code</h1>
-    <p class="auth-subtitle">Paste the SHA-1 value sent to your email to continue.</p>
+{% block full_content %}
+<div class="auth-page">
 
-    <form method="post" novalidate>
-      <div class="form-field">
-        <label for="username">Username</label>
-        <input id="username" name="username" placeholder="Enter your username"
-               value="{{ values.username or '' }}"
-               class="{{ 'input-error' if errors.username }}" autocomplete="username">
-        {% if errors.username %}<p class="error-text">{{ errors.username }}</p>{% endif %}
+<div class="auth-form-area">
+    <div class="auth-form-inner">
+      <h1 class="auth-title">Enter reset code</h1>
+      <p class="auth-subtitle">Paste the SHA-1 code sent to your email address to continue.</p>
+
+      <form method="post" novalidate>
+        <div class="form-field">
+          <label for="username">Username</label>
+          <input id="username" name="username" placeholder="Enter your username"
+                 value="{{ values.username or '' }}"
+                 class="{{ 'input-error' if errors.username }}" autocomplete="username">
+          {% if errors.username %}<p class="error-text">{{ errors.username }}</p>{% endif %}
+        </div>
+
+        <div class="form-field">
+          <label for="reset_value">SHA-1 reset code</label>
+          <input id="reset_value" name="reset_value" placeholder="Paste your 40-character reset code"
+                 value="{{ values.reset_value or '' }}"
+                 class="{{ 'input-error' if errors.reset_value }}" autocomplete="off"
+                 style="font-family:'SF Mono','Fira Code','Courier New',monospace; font-size:0.875rem; letter-spacing:0.03em;">
+          {% if errors.reset_value %}<p class="error-text">{{ errors.reset_value }}</p>{% endif %}
+        </div>
+
+        <button type="submit" class="btn-full">Verify and continue</button>
+      </form>
+
+      <div class="auth-footer">
+        <a href="/forgot-password">Request a new code</a>
       </div>
-
-      <div class="form-field">
-        <label for="reset_value">SHA-1 reset code</label>
-        <input id="reset_value" name="reset_value" placeholder="Paste your reset code here"
-               value="{{ values.reset_value or '' }}"
-               class="{{ 'input-error' if errors.reset_value }}" autocomplete="off"
-               style="font-family:'Courier New',monospace; font-size:0.875rem;">
-        {% if errors.reset_value %}<p class="error-text">{{ errors.reset_value }}</p>{% endif %}
-      </div>
-
-      <button type="submit" class="btn-full">Verify code</button>
-    </form>
-
-    <div class="auth-footer">
-      <a href="/forgot-password">Request a new code</a>
     </div>
   </div>
+
 </div>
 {% endblock %}

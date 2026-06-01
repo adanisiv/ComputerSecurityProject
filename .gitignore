@@ -1,7 +1,9 @@
 .venv
 venv
 .env
+.env.txt
 __pycache__/
 instance/
 *.db
 *.pyc
+.claude/
