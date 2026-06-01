@@ -370,11 +370,7 @@ def forgot_password():
         user.reset_token_sha1 = token_sha1
         db.session.commit()
         send_mail(user.email, "Communication_LTD reset code", f"Your SHA-1 reset value: {token_sha1}")
-        if not os.getenv("SMTP_HOST", "").strip():
-            # No email server configured — show the token directly on screen (dev mode only)
-            flash(f"[DEV] No email server configured. Your reset code: {token_sha1}")
-        else:
-            flash("Reset value sent to your email.")
+        flash("Reset value sent to your email.")
         return redirect(url_for("verify_reset"))
     return render_template("forgot_password.html", values={}, errors={})
 
