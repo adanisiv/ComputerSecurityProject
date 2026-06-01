@@ -208,7 +208,12 @@ def send_mail(to_email: str, subject: str, body: str):
     mail_from = os.getenv("MAIL_FROM", "no-reply@communication-ltd.com")
 
     if not smtp_host:
-        print(f"[DEV EMAIL] To: {to_email} | Subject: {subject} | Body: {body}")
+        token = body.split("reset value: ")[-1] if "reset value: " in body else body
+        print("\n" + "="*60, flush=True)
+        print(f"  PASSWORD RESET TOKEN", flush=True)
+        print(f"  To      : {to_email}", flush=True)
+        print(f"  TOKEN   : {token}", flush=True)
+        print("="*60 + "\n", flush=True)
         return
 
     msg = EmailMessage()
@@ -365,7 +370,11 @@ def forgot_password():
         user.reset_token_sha1 = token_sha1
         db.session.commit()
         send_mail(user.email, "Communication_LTD reset code", f"Your SHA-1 reset value: {token_sha1}")
-        flash("Reset value sent to your email.")
+        if not os.getenv("SMTP_HOST", "").strip():
+            # No email server configured — show the token directly on screen (dev mode only)
+            flash(f"[DEV] No email server configured. Your reset code: {token_sha1}")
+        else:
+            flash("Reset value sent to your email.")
         return redirect(url_for("verify_reset"))
     return render_template("forgot_password.html", values={}, errors={})
 
