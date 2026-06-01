@@ -105,19 +105,9 @@ To stop the server, press **Ctrl + C** in the terminal.
 | `/verify-reset` | Enter the reset code to access password change |
 | `/logout` | End your session |
 
-### Password reset (development mode)
+### Password reset
 
-If no SMTP server is configured in `.env`, the SHA-1 reset code is shown on the screen after submitting the forgot-password form. Copy it directly into the verify-reset page.
-
-To send real emails instead, fill in the SMTP fields in `.env`:
-
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your.email@gmail.com
-SMTP_PASS=your-app-password
-MAIL_FROM=your.email@gmail.com
-```
+After submitting the forgot-password form, a reset code is sent to the email address that was used during registration. Paste the code into the verify-reset page to continue.
 
 ---
 
