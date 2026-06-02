@@ -79,6 +79,7 @@
               <th>#</th>
               <th>Customer</th>
               <th>ID Number</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -92,6 +93,11 @@
                 </div>
               </td>
               <td><span class="id-badge">{{ c.id_number }}</span></td>
+              <td style="width:48px; text-align:center;">
+                <form method="post" action="/delete-customer/{{ c.id }}" style="margin:0;">
+                  <button type="submit" class="btn-delete" title="Delete customer">✕</button>
+                </form>
+              </td>
             </tr>
             {% endfor %}
           </tbody>

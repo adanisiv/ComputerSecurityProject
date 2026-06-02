@@ -588,6 +588,17 @@ def system_screen():
     )
 
 
+@app.route("/delete-customer/<int:customer_id>", methods=["POST"])
+def delete_customer(customer_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    customer = Customer.query.get(customer_id)
+    if customer:
+        db.session.delete(customer)
+        db.session.commit()
+    return redirect(url_for("system_screen"))
+
+
 @app.route("/logout")
 def logout():
     session.clear()

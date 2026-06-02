@@ -526,6 +526,21 @@
     }
     .pw-toggle:hover { color: var(--primary); background: var(--primary-light); }
 
+    /* ── Delete button ──────────────────────────────── */
+    .btn-delete {
+      background: none;
+      border: none;
+      box-shadow: none;
+      color: var(--text-light);
+      cursor: pointer;
+      font-size: 0.875rem;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: color .15s, background .15s;
+      width: auto; height: auto;
+    }
+    .btn-delete:hover { color: var(--error); background: var(--error-bg); }
+
     /* ── Misc ────────────────────────────────────────── */
     hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
     a { color: var(--primary); text-decoration: none; }
