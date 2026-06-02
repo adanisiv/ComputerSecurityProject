@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import smtplib
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,42 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 
 load_dotenv()
+
+# ── Input validation helpers ──────────────────────────────
+_EMAIL_RE    = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+_USERNAME_RE = re.compile(r'^[a-zA-Z0-9_]{3,20}$')
+_NAME_RE     = re.compile(u"^[֐-׿a-zA-Z\\s'\\-]{1,50}$")
+_TOKEN_RE    = re.compile(r'^[0-9a-f]{40}$')
+
+def validate_email(email: str):
+    if not email:
+        return "Email is required."
+    if not _EMAIL_RE.match(email):
+        return "Please enter a valid email address (e.g. name@example.com)."
+    return None
+
+def validate_username(username: str):
+    if not username:
+        return "Username is required."
+    if not _USERNAME_RE.match(username):
+        return "Username must be 3–20 characters: letters, numbers, and underscore only."
+    return None
+
+def validate_name(value: str, field: str):
+    if not value:
+        return f"{field} is required."
+    if len(value) > 50:
+        return f"{field} must be 50 characters or fewer."
+    if not _NAME_RE.match(value):
+        return f"{field} may only contain letters, spaces, hyphens, and apostrophes."
+    return None
+
+def validate_reset_code(code: str):
+    if not code:
+        return "Reset code is required."
+    if not _TOKEN_RE.match(code):
+        return "Invalid reset code format."
+    return None
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
@@ -242,10 +279,11 @@ def register():
         values = {"username": username, "email": email}
         errors = {}
 
-        if not username:
-            errors["username"] = "Username is required."
-        if not email:
-            errors["email"] = "Email is required."
+        err = validate_username(username)
+        if err: errors["username"] = err
+
+        err = validate_email(email)
+        if err: errors["email"] = err
 
         valid, msg = validate_password(password)
         if not valid:
@@ -384,8 +422,8 @@ def verify_reset():
         errors = {}
         if not username:
             errors["username"] = "Username is required."
-        if not reset_value:
-            errors["reset_value"] = "SHA-1 value is required."
+        err = validate_reset_code(reset_value)
+        if err: errors["reset_value"] = err
         if errors:
             return render_template("verify_reset.html", values=values, errors=errors)
         user = User.query.filter_by(username=username).first()
@@ -416,10 +454,12 @@ def system_screen():
         id_number = request.form["id_number"].strip()
         values = {"first_name": first_name, "last_name": last_name, "id_number": id_number}
 
-        if not first_name:
-            errors["first_name"] = "First name is required."
-        if not last_name:
-            errors["last_name"] = "Last name is required."
+        err = validate_name(first_name, "First name")
+        if err: errors["first_name"] = err
+
+        err = validate_name(last_name, "Last name")
+        if err: errors["last_name"] = err
+
         if not id_number:
             errors["id_number"] = "ID number is required."
         elif not id_number.isdigit():
