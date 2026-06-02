@@ -1,55 +1,25 @@
 # Communication_LTD — Web Security Project
 
-A Flask web application for a fictional telecom company, submitted as part of a Cyber Security course.
+A Flask web application for a fictional telecom company, built as a Cyber Security course final project.
 
-The project contains **two versions** of the same application:
+The project has **two separate versions** of the same app:
 
-| Folder | Description |
+| Folder | What it is |
 |---|---|
-| `TelecomSecure/` | The secure version (Part A) |
-| `TelecomNotSecure/` | The vulnerable version that demonstrates SQL Injection and Stored XSS (Part B) |
+| `TelecomSecure/` | **Part A** — the secure, properly built version |
+| `TelecomNotSecure/` | **Part B** — an intentionally vulnerable version that demonstrates real attacks |
 
 ---
 
-## Requirements
+## Setup
 
-- Python 3.10 or newer
-- pip (installed with Python)
-
----
-
-## Installation
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/adanisiv/ComputerSecurityProject.git
-cd ComputerSecurityProject
-```
-
-### 2. Create a virtual environment
-
-**Windows:**
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-**macOS / Linux:**
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-
-The terminal will show `(venv)` when the environment is active.
-
-### 3. Install dependencies
+### Step 1 — Install Python dependencies
 
 ```bash
 pip install -r TelecomSecure/requirements.txt
 ```
 
-### 4. Create the `.env` files
+### Step 2 — Create the config files
 
 **Windows:**
 ```bash
@@ -63,184 +33,149 @@ cp TelecomSecure/.env.example TelecomSecure/.env
 cp TelecomNotSecure/.env.example TelecomNotSecure/.env
 ```
 
-No changes to the `.env` files are needed — the defaults work out of the box.
+### Step 3 — Run the apps
 
----
+Both versions can run at the same time. Open **two terminals**:
 
-## Running the Application
-
-Both versions can run at the same time — the secure version uses port `5000` and the vulnerable version uses port `5001`.
-
-### Secure version
-
+**Terminal 1 — Secure version:**
 ```bash
 cd TelecomSecure
 python app.py
 ```
+Open `http://127.0.0.1:5000` in your browser.
 
-Open **http://127.0.0.1:5000** in your browser.
-
-### Vulnerable version
-
-In a second terminal:
-
+**Terminal 2 — Vulnerable version:**
 ```bash
 cd TelecomNotSecure
 python app.py
 ```
+Open `http://127.0.0.1:5001` in your browser.
 
-Open **http://127.0.0.1:5001** in your browser.
-
-To stop a server, press **Ctrl + C** in its terminal.
-
----
-
-## Application Flow
-
-| Route | Purpose |
-|---|---|
-| `/register` | Create a new account |
-| `/login` | Sign in |
-| `/system` | Add customers and search the customer list |
-| `/change-password` | Change your password (current password required) |
-| `/forgot-password` | Request a reset code |
-| `/verify-reset` | Enter the reset code to access password change |
-| `/logout` | End your session |
-
-### Password reset
-
-After submitting the forgot-password form, a reset code is sent to the email address that was used during registration. Paste the code into the verify-reset page to continue.
+To stop either server press **Ctrl + C** in its terminal.
 
 ---
 
-## Password Policy
+## How to use the app
 
-All rules are configured in `password_policy.json` in each version's folder. The administrator can modify the policy without changing any code.
+1. Go to `/register` and create an account
+2. Log in at `/login`
+3. You will land on the **System screen** where you can add and search customers
+4. To change your password go to `/change-password`
+5. If you forget your password, use `/forgot-password` — a reset code will be sent to your email
 
-```json
-{
-  "min_length": 10,
-  "require_uppercase": true,
-  "require_lowercase": true,
-  "require_digit": true,
-  "require_special": true,
-  "special_chars": "!@#$%^&*()-_=+[]{};:,.?",
-  "history_size": 3,
-  "dictionary_file": "common_passwords.txt",
-  "max_login_attempts": 3,
-  "lockout_minutes": 15
-}
-```
+### Password requirements
+
+Passwords must follow the rules in `password_policy.json`:
+- Minimum 10 characters
+- At least one uppercase letter, one lowercase letter, one digit, one special character
+- Cannot be a common/dictionary password
+- Cannot reuse any of your last 3 passwords
+- Account is locked for 15 minutes after 3 failed login attempts
 
 ---
 
-## Part B — Vulnerabilities and Defences
+## Part B — Security Attacks and Defences
 
-Part B has four requirements. Each one is implemented and demonstrated in the two versions of the project:
-
-| # | Requirement | Where implemented |
-|---|---|---|
-| **B.1** | Stored XSS attack on Part A section 4 (System screen) | `TelecomNotSecure` |
-| **B.2** | SQL Injection on Part A sections 1 (Register), 3 (Login), 4 (System) | `TelecomNotSecure` |
-| **B.3** | Defence against XSS using HTML character encoding | `TelecomSecure` |
-| **B.4** | Defence against SQL Injection using parameterised queries | `TelecomSecure` |
-
-> **Before testing:** make sure at least one user is registered in the vulnerable version (e.g. username `demo`, any valid email, a password that meets the policy). The SQL Injection on Login needs at least one row in the `user` table to return.
+> **Before you start:** open the **vulnerable version** at `http://127.0.0.1:5001` and register one normal user first (e.g. username `demo`, any email, a valid password like `Demo1!demo`). Several attacks below require at least one user to exist in the database.
 
 ---
 
-### B.1 — Stored XSS attack (vulnerable version)
+### B.1 — Stored XSS Attack
 
-**Location:** System screen — Add Customer form (`TelecomNotSecure`, port 5001)
+**What is XSS?** The app stores whatever you type into the database and then displays it on the page without checking it. If you type HTML or JavaScript instead of a name, the browser will run it as code.
 
-**Why it is vulnerable:** `templates/system.html` renders customer names with the `| safe` Jinja2 filter, which disables HTML escaping.
+**Where:** System screen → Add Customer form (vulnerable version only)
 
 **Steps:**
-1. Log in to `http://127.0.0.1:5001`
-2. Open the **System** screen
-3. In the **First name** field, paste:
-   ```html
-   <script>alert('XSS Attack!')</script>
-   ```
-4. Fill **Last name** with anything (e.g. `Test`) and **ID number** with anything (e.g. `12345678`)
-5. Click **Add customer**
+1. Log in at `http://127.0.0.1:5001`
+2. Go to the **System** screen
+3. Fill in the Add Customer form:
+   - First name: `<script>alert('XSS')</script>`
+   - Last name: `Test`
+   - ID number: `12345678`
+4. Click **Add customer**
 
-The browser executes the script immediately, and again every time any logged-in user views the customer list (stored XSS).
+**What happens:** a popup appears saying "XSS". The script is now saved in the database. Every time **any** user opens the System screen the popup fires again — that is what makes it *Stored* XSS (the attack persists for everyone, not just the person who submitted it).
+
+**Defence (secure version):** repeat the same steps on `http://127.0.0.1:5000`. The customer is added normally but the name is displayed as plain text — `<script>alert('XSS')</script>` — the browser never executes it. The secure version uses Jinja2's built-in HTML encoding which converts `<` to `&lt;` and `>` to `&gt;`, so the browser treats it as text, not code.
 
 ---
 
-### B.2 — SQL Injection attacks (vulnerable version)
+### B.2 — SQL Injection Attacks
 
-All three attacks work on `TelecomNotSecure` (port 5001). Each route builds SQL with raw f-string concatenation, so the user input becomes part of the query itself.
+**What is SQL Injection?** The app builds its database queries by pasting the user's input directly into the SQL string. An attacker can type a carefully crafted input that changes the meaning of the query — bypassing security checks, leaking data, or destroying records.
 
-#### B.2.a — SQLi on Register (Part A section 1)
+---
 
-**Goal:** Block every future registration by making the duplicate-check always return TRUE.
+#### Attack 1 — Block all future registrations
 
-**Steps:**
-1. Open `/register`
-2. Fill the form with:
-   ```
-   Username:  ' OR '1'='1' --
-   Email:     any@example.com
-   Password:  Aa1!aaaaaa  (any password that meets the policy)
-   ```
-3. Submit
-
-The app responds **"User or email already exists"** — and every future register attempt will fail the same way, because the WHERE clause is always TRUE.
-
-#### B.2.b — SQLi on Login (Part A section 3)
-
-**Goal:** Log in without knowing any password.
+**Where:** `/register` — username field (vulnerable version)
 
 **Steps:**
-1. Open `/login`
-2. Fill the form with:
-   ```
-   Username:  ' OR '1'='1' LIMIT 1 --
-   Password:  anything
-   ```
-3. Submit
+1. Go to `http://127.0.0.1:5001/register`
+2. Fill in:
+   - Username: `' OR '1'='1' --`
+   - Email: `any@test.com`
+   - Password: `Demo1!demo`
+3. Click **Create account**
 
-You are logged in as the first user in the database. The password is never checked.
+**What happens:** the app says "User or email already exists." Nobody can ever register again — the username turns the duplicate-check query into one that is always TRUE, so the system always thinks the user already exists.
 
-#### B.2.c — SQLi on System (Part A section 4)
+**Defence (secure version):** try the same on `http://127.0.0.1:5000/register`. The username field rejects it immediately: *"Username must be 3–20 characters: letters, numbers, and underscore only."* The input never even reaches the database.
 
-**Goal:** Extract data from another table (`user`) through the customer search.
+---
+
+#### Attack 2 — Log in without a password
+
+**Where:** `/login` — username field (vulnerable version)
 
 **Steps:**
-1. Log in (use B.2.b if you don't know a password)
-2. Open the **System** screen
-3. In the **search box**, paste:
-   ```sql
+1. Go to `http://127.0.0.1:5001/login`
+2. Fill in:
+   - Username: `' OR '1'='1' LIMIT 1 --`
+   - Password: `anything`
+3. Click **Sign in**
+
+**What happens:** you are logged in as the first user in the database — no password needed. The username payload makes the query return the first row in the user table regardless of what was typed, completely bypassing authentication.
+
+**Defence (secure version):** try the same on `http://127.0.0.1:5000/login`. The app responds "User does not exist." The input is passed as a safe parameter, so the database looks for a user literally named `' OR '1'='1' LIMIT 1 --` and finds nothing.
+
+---
+
+#### Attack 3 — Steal all user data through search
+
+**Where:** `/system` — search box (vulnerable version)
+
+**Steps:**
+1. Log in (use Attack 2 if needed)
+2. Go to the **System** screen at `http://127.0.0.1:5001/system`
+3. Paste this into the **search box**:
+   ```
    ' UNION SELECT id, username, email, id FROM user --
    ```
-4. Press **Search**
+4. Click **Search**
 
-The customer list now also shows every row from the `user` table (usernames and emails leaked).
+**What happens:** the customer list now shows every registered user's **username and email address**. The UNION keyword merges the results of two queries — the original customer search and a second query that reads from the user table.
 
----
-
-### B.3 — Defence against XSS (secure version)
-
-**Location:** System screen in `TelecomSecure` (port 5000)
-
-**Defence used:** HTML character encoding (Jinja2's built-in auto-escaping). All user-provided content is rendered with plain `{{ ... }}` — no `| safe` filter. Characters like `<`, `>`, `'`, `"`, `&` are converted to HTML entities before reaching the page.
-
-**Verify:** repeat the steps from B.1 on `http://127.0.0.1:5000`. The customer is added, and its name is displayed as the literal text `<script>alert('XSS Attack!')</script>` instead of being executed.
+**Defence (secure version):** try the same on `http://127.0.0.1:5000/system`. The result is simply "No customers match…" — the entire search string is treated as a literal name to search for, not as SQL code.
 
 ---
 
-### B.4 — Defence against SQL Injection (secure version)
+#### Attack 4 — Delete all customer records
 
-**Location:** Register, Login, and System screens in `TelecomSecure` (port 5000)
+**Where:** `/system` — ID number field (vulnerable version)
 
-**Defence used:** parameterised queries through SQLAlchemy's ORM (`User.query.filter_by(...)`, `Customer.query.filter(...)`). User input is sent to the database as a bound parameter, never as part of the SQL text — so it can never change the structure of the query. Strict server-side input validation (regex on usernames, emails, names) adds a second layer of protection.
+**Steps:**
+1. Log in and go to the **System** screen at `http://127.0.0.1:5001/system`
+2. Fill in the Add Customer form:
+   - First name: `Test`
+   - Last name: `Test`
+   - ID number: `1'); DELETE FROM customer; --`
+3. Click **Add customer**
 
-**Verify:** repeat the attacks from B.2.a, B.2.b and B.2.c on `http://127.0.0.1:5000`:
-- **Register:** the username `' OR '1'='1' --` is rejected by input validation ("letters, numbers, and underscore only").
-- **Login:** the same payload simply returns "User does not exist" — the quotes are stored as part of the literal username and never break the query.
-- **System search:** the UNION payload returns "No customers match …" — the entire string is matched literally against `first_name`/`last_name`.
+**What happens:** all customers are deleted from the database. The ID number field is injected directly into the SQL INSERT, allowing an attacker to append a second statement that wipes the table.
+
+**Defence (secure version):** try the same on `http://127.0.0.1:5000/system`. The ID number field only accepts 8–9 digit numbers and immediately rejects the input with a validation error. Even if the validation were bypassed, the ORM uses parameterised queries so the input could never become executable SQL.
 
 ---
 
@@ -249,15 +184,15 @@ The customer list now also shows every row from the `user` table (usernames and 
 ```
 ComputerSecurityProject/
 │
-├── TelecomSecure/                  Secure version (Part A)
-│   ├── app.py                      Main Flask application
-│   ├── password_policy.json        Password rules
-│   ├── common_passwords.txt        Dictionary of weak passwords
+├── TelecomSecure/          Secure version (Part A)
+│   ├── app.py              Main application
+│   ├── password_policy.json
+│   ├── common_passwords.txt
 │   ├── requirements.txt
-│   ├── .env.example                Template for environment variables
-│   └── templates/                  HTML templates
+│   ├── .env.example
+│   └── templates/
 │
-└── TelecomNotSecure/               Vulnerable version (Part B)
+└── TelecomNotSecure/       Vulnerable version (Part B)
     ├── app.py
     ├── password_policy.json
     ├── common_passwords.txt
