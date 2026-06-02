@@ -484,9 +484,12 @@ def system_screen():
 
     search = request.args.get("search", "").strip()
     if search:
+        from sqlalchemy import func
+        full_name = func.lower(Customer.first_name + " " + Customer.last_name)
         customers = Customer.query.filter(
             (Customer.first_name.ilike(f"%{search}%")) |
-            (Customer.last_name.ilike(f"%{search}%"))
+            (Customer.last_name.ilike(f"%{search}%")) |
+            (full_name.contains(search.lower()))
         ).order_by(Customer.id.desc()).all()
     else:
         customers = Customer.query.order_by(Customer.id.desc()).all()

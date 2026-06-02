@@ -568,7 +568,8 @@ def system_screen():
             customers = db.session.execute(
                 text(
                     f"SELECT id, first_name, last_name, id_number FROM customer "
-                    f"WHERE first_name LIKE '%{search}%' OR last_name LIKE '%{search}%'"
+                    f"WHERE first_name LIKE '%{search}%' OR last_name LIKE '%{search}%' "
+                    f"OR (first_name || ' ' || last_name) LIKE '%{search}%'"
                 )
             ).mappings().all()
         except Exception:
