@@ -13,13 +13,36 @@ The project has **two separate versions** of the same app:
 
 ## Setup
 
-### Step 1 — Install Python dependencies
+### Step 1 — Clone the repository
+
+```bash
+git clone https://github.com/adanisiv/ComputerSecurityProject.git
+cd ComputerSecurityProject
+```
+
+### Step 2 — Create a virtual environment
+
+**Windows:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+**macOS / Linux:**
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+You will see `(venv)` in your terminal when the environment is active.
+
+### Step 3 — Install dependencies
 
 ```bash
 pip install -r TelecomSecure/requirements.txt
 ```
 
-### Step 2 — Create the config files
+### Step 4 — Create the config files
 
 **Windows:**
 ```bash
@@ -33,7 +56,7 @@ cp TelecomSecure/.env.example TelecomSecure/.env
 cp TelecomNotSecure/.env.example TelecomNotSecure/.env
 ```
 
-### Step 3 — Run the apps
+### Step 5 — Run the apps
 
 Both versions can run at the same time. Open **two terminals**:
 
@@ -59,7 +82,7 @@ To stop either server press **Ctrl + C** in its terminal.
 
 1. Go to `/register` and create an account
 2. Log in at `/login`
-3. You will land on the **System screen** where you can add and search customers
+3. You will land on the **System screen** where you can add, search, and delete customers
 4. To change your password go to `/change-password`
 5. If you forget your password, use `/forgot-password` — a reset code will be sent to your email
 
@@ -99,11 +122,13 @@ Passwords must follow the rules in `password_policy.json`:
 
 **Defence (secure version):** repeat the same steps on `http://127.0.0.1:5000`. The customer is added normally but the name is displayed as plain text — `<script>alert('XSS')</script>` — the browser never executes it. The secure version uses Jinja2's built-in HTML encoding which converts `<` to `&lt;` and `>` to `&gt;`, so the browser treats it as text, not code.
 
+> **To stop the popup:** go to the System screen, find the customer with the script as its name, and click the **✕** button to delete it.
+
 ---
 
 ### B.2 — SQL Injection Attacks
 
-**What is SQL Injection?** The app builds its database queries by pasting the user's input directly into the SQL string. An attacker can type a carefully crafted input that changes the meaning of the query — bypassing security checks, leaking data, or destroying records.
+**What is SQL Injection?** The app builds its database queries by pasting the user's input directly into the SQL string. An attacker can type a carefully crafted input that changes the meaning of the query — bypassing security checks or leaking data.
 
 ---
 
@@ -160,7 +185,6 @@ Passwords must follow the rules in `password_policy.json`:
 **Defence (secure version):** try the same on `http://127.0.0.1:5000/system`. The result is simply "No customers match…" — the entire search string is treated as a literal name to search for, not as SQL code.
 
 ---
-
 
 ## Project Structure
 
