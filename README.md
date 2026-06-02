@@ -161,23 +161,6 @@ Passwords must follow the rules in `password_policy.json`:
 
 ---
 
-#### Attack 4 — Delete all customer records
-
-**Where:** `/system` — ID number field (vulnerable version)
-
-**Steps:**
-1. Log in and go to the **System** screen at `http://127.0.0.1:5001/system`
-2. Fill in the Add Customer form:
-   - First name: `Test`
-   - Last name: `Test`
-   - ID number: `1'); DELETE FROM customer; --`
-3. Click **Add customer**
-
-**What happens:** all customers are deleted from the database. The ID number field is injected directly into the SQL INSERT, allowing an attacker to append a second statement that wipes the table.
-
-**Defence (secure version):** try the same on `http://127.0.0.1:5000/system`. The ID number field only accepts 8–9 digit numbers and immediately rejects the input with a validation error. Even if the validation were bypassed, the ORM uses parameterised queries so the input could never become executable SQL.
-
----
 
 ## Project Structure
 
