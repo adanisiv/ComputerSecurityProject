@@ -17,7 +17,6 @@
 {% if new_customer_name %}
 <div class="success-notice">
   <span>✓</span>
-  <!-- Part B.1 XSS: new_customer_name is Markup() so Jinja2 does NOT escape it -->
   <span>Customer <strong>{{ new_customer_name }}</strong> added successfully.</span>
 </div>
 {% endif %}
@@ -31,7 +30,6 @@
       <form method="post" novalidate>
         <div class="form-field">
           <label for="first_name">First name</label>
-          <!-- XSS demo: no sanitization on this input -->
           <input id="first_name" name="first_name" placeholder="e.g. David"
                  value="{{ values.first_name or '' }}"
                  class="{{ 'input-error' if errors.first_name }}">
@@ -48,8 +46,7 @@
 
         <div class="form-field">
           <label for="id_number">ID number</label>
-          <!-- SQLi demo: id_number injected into raw SQL -->
-          <input id="id_number" name="id_number" placeholder="Any value (SQLi demo)"
+          <input id="id_number" name="id_number" placeholder="8–9 digit national ID"
                  value="{{ values.id_number or '' }}"
                  class="{{ 'input-error' if errors.id_number }}">
           {% if errors.id_number %}<p class="error-text">{{ errors.id_number }}</p>{% endif %}
@@ -65,10 +62,8 @@
     <div class="card-body">
       <h2 class="card-title">Customer List</h2>
 
-      <!-- SQLi demo: search term injected into raw SQL LIKE clause -->
       <form method="get" class="search-row">
-        <input name="search" placeholder="Search… (SQLi: try UNION attack here)"
-               value="{{ search or '' }}" autocomplete="off">
+        <input name="search" placeholder="Search by name…" value="{{ search or '' }}" autocomplete="off">
         <button type="submit" class="btn btn-ghost" style="padding:9px 16px;">Search</button>
         {% if search %}
           <a href="/system" class="btn btn-ghost" style="padding:9px 14px;">✕</a>
@@ -92,16 +87,11 @@
               <td>
                 <div class="customer-cell">
                   <div class="avatar">
-                    {# XSS: first letter taken from unsanitized input — avatar itself is safe,
-                       but the full name below is rendered raw via | safe #}
                     {{ (c.first_name | string)[0] | upper }}{{ (c.last_name | string)[0] | upper }}
                   </div>
-                  <!-- Part B.1 XSS: | safe bypasses Jinja2 auto-escaping -->
-                  <!-- Stored XSS: any HTML/JS in first_name or last_name executes for every visitor -->
                   <span class="customer-name">{{ c.first_name | safe }} {{ c.last_name | safe }}</span>
                 </div>
               </td>
-              <!-- Part B.2 SQLi: id_number also rendered raw (data from vulnerable query) -->
               <td><span class="id-badge">{{ c.id_number | safe }}</span></td>
             </tr>
             {% endfor %}

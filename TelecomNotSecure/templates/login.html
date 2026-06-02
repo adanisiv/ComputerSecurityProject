@@ -3,20 +3,7 @@
 {% block full_content %}
 <div class="auth-page">
 
-  <div class="auth-brand">
-    <div class="auth-brand-logo">CL</div>
-    <div class="auth-brand-content">
-      <h2 class="auth-brand-title">Vulnerable Version</h2>
-      <p class="auth-brand-sub">This login is vulnerable to SQL Injection. The username field is concatenated directly into the SQL query.</p>
-      <ul class="auth-brand-features">
-        <li>SQLi bypass: <code style="font-family:monospace;opacity:.85">' OR '1'='1' LIMIT 1 --</code></li>
-        <li>No parameterized queries used</li>
-        <li>Raw f-string SQL concatenation</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="auth-form-area">
+<div class="auth-form-area">
     <div class="auth-form-inner">
       <h1 class="auth-title">Welcome back</h1>
       <p class="auth-subtitle">Sign in to your account to continue.</p>

@@ -3,23 +3,10 @@
 {% block full_content %}
 <div class="auth-page">
 
-  <div class="auth-brand">
-    <div class="auth-brand-logo">CL</div>
-    <div class="auth-brand-content">
-      <h2 class="auth-brand-title">Verify your identity</h2>
-      <p class="auth-brand-sub">Paste the SHA-1 reset code from your terminal or email. It is a 40-character hexadecimal string.</p>
-      <ul class="auth-brand-features">
-        <li>One-time use — cannot be reused</li>
-        <li>Token cleared from database on success</li>
-        <li>Account lockout is lifted upon verification</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="auth-form-area">
+<div class="auth-form-area">
     <div class="auth-form-inner">
-      <h1 class="auth-title">Enter reset code</h1>
-      <p class="auth-subtitle">Paste the SHA-1 code printed to the terminal (or sent to your email) to continue.</p>
+      <h1 class="auth-title">Check your email</h1>
+      <p class="auth-subtitle">We sent a reset code to your email address. Paste it below to continue.</p>
 
       <form method="post" novalidate>
         <div class="form-field">
@@ -31,8 +18,8 @@
         </div>
 
         <div class="form-field">
-          <label for="reset_value">SHA-1 reset code</label>
-          <input id="reset_value" name="reset_value" placeholder="Paste your 40-character reset code"
+          <label for="reset_value">Reset code</label>
+          <input id="reset_value" name="reset_value" placeholder="Paste the code from your email"
                  value="{{ values.reset_value or '' }}"
                  class="{{ 'input-error' if errors.reset_value }}" autocomplete="off"
                  style="font-family:'SF Mono','Fira Code','Courier New',monospace; font-size:0.875rem; letter-spacing:0.03em;">

@@ -69,7 +69,7 @@ No changes to the `.env` files are needed — the defaults work out of the box.
 
 ## Running the Application
 
-> Run only **one** version at a time. Both use port 5000.
+Both versions can run at the same time — the secure version uses port `5000` and the vulnerable version uses port `5001`.
 
 ### Secure version
 
@@ -82,14 +82,16 @@ Open **http://127.0.0.1:5000** in your browser.
 
 ### Vulnerable version
 
+In a second terminal:
+
 ```bash
 cd TelecomNotSecure
 python app.py
 ```
 
-Open **http://127.0.0.1:5000** in your browser.
+Open **http://127.0.0.1:5001** in your browser.
 
-To stop the server, press **Ctrl + C** in the terminal.
+To stop a server, press **Ctrl + C** in its terminal.
 
 ---
 
