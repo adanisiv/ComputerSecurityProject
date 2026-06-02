@@ -134,44 +134,113 @@ All rules are configured in `password_policy.json` in each version's folder. The
 
 ---
 
-## Testing the Vulnerabilities (Part B)
+## Part B — Vulnerabilities and Defences
 
-The following attacks work **only** in the `TelecomNotSecure` version. The `TelecomSecure` version is protected against each one.
+Part B has four requirements. Each one is implemented and demonstrated in the two versions of the project:
 
-### 1. Stored XSS — System screen
+| # | Requirement | Where implemented |
+|---|---|---|
+| **B.1** | Stored XSS attack on Part A section 4 (System screen) | `TelecomNotSecure` |
+| **B.2** | SQL Injection on Part A sections 1 (Register), 3 (Login), 4 (System) | `TelecomNotSecure` |
+| **B.3** | Defence against XSS using HTML character encoding | `TelecomSecure` |
+| **B.4** | Defence against SQL Injection using parameterised queries | `TelecomSecure` |
 
-1. Log in to `TelecomNotSecure`
-2. Go to the System screen
-3. In the **First Name** field, enter:
-   ```
+> **Before testing:** make sure at least one user is registered in the vulnerable version (e.g. username `demo`, any valid email, a password that meets the policy). The SQL Injection on Login needs at least one row in the `user` table to return.
+
+---
+
+### B.1 — Stored XSS attack (vulnerable version)
+
+**Location:** System screen — Add Customer form (`TelecomNotSecure`, port 5001)
+
+**Why it is vulnerable:** `templates/system.html` renders customer names with the `| safe` Jinja2 filter, which disables HTML escaping.
+
+**Steps:**
+1. Log in to `http://127.0.0.1:5001`
+2. Open the **System** screen
+3. In the **First name** field, paste:
+   ```html
    <script>alert('XSS Attack!')</script>
    ```
-4. Submit. The script runs immediately and on every page load for any user who views the customer list.
+4. Fill **Last name** with anything (e.g. `Test`) and **ID number** with anything (e.g. `12345678`)
+5. Click **Add customer**
 
-### 2. SQL Injection — Login bypass
+The browser executes the script immediately, and again every time any logged-in user views the customer list (stored XSS).
 
-On the Login screen, enter:
-```
-Username:  ' OR '1'='1' LIMIT 1 --
-Password:  anything
-```
-The query always returns the first user, bypassing authentication.
+---
 
-### 3. SQL Injection — Block all registrations
+### B.2 — SQL Injection attacks (vulnerable version)
 
-On the Register screen, enter as the username:
-```
-' OR '1'='1' --
-```
-The duplicate-check always returns a row, so the app permanently reports "user already exists".
+All three attacks work on `TelecomNotSecure` (port 5001). Each route builds SQL with raw f-string concatenation, so the user input becomes part of the query itself.
 
-### 4. SQL Injection — Data extraction (UNION)
+#### B.2.a — SQLi on Register (Part A section 1)
 
-On the System screen, enter in the search box:
-```
-' UNION SELECT id, username, email, id FROM user --
-```
-The full user table — including usernames and emails — is displayed in the customer list.
+**Goal:** Block every future registration by making the duplicate-check always return TRUE.
+
+**Steps:**
+1. Open `/register`
+2. Fill the form with:
+   ```
+   Username:  ' OR '1'='1' --
+   Email:     any@example.com
+   Password:  Aa1!aaaaaa  (any password that meets the policy)
+   ```
+3. Submit
+
+The app responds **"User or email already exists"** — and every future register attempt will fail the same way, because the WHERE clause is always TRUE.
+
+#### B.2.b — SQLi on Login (Part A section 3)
+
+**Goal:** Log in without knowing any password.
+
+**Steps:**
+1. Open `/login`
+2. Fill the form with:
+   ```
+   Username:  ' OR '1'='1' LIMIT 1 --
+   Password:  anything
+   ```
+3. Submit
+
+You are logged in as the first user in the database. The password is never checked.
+
+#### B.2.c — SQLi on System (Part A section 4)
+
+**Goal:** Extract data from another table (`user`) through the customer search.
+
+**Steps:**
+1. Log in (use B.2.b if you don't know a password)
+2. Open the **System** screen
+3. In the **search box**, paste:
+   ```sql
+   ' UNION SELECT id, username, email, id FROM user --
+   ```
+4. Press **Search**
+
+The customer list now also shows every row from the `user` table (usernames and emails leaked).
+
+---
+
+### B.3 — Defence against XSS (secure version)
+
+**Location:** System screen in `TelecomSecure` (port 5000)
+
+**Defence used:** HTML character encoding (Jinja2's built-in auto-escaping). All user-provided content is rendered with plain `{{ ... }}` — no `| safe` filter. Characters like `<`, `>`, `'`, `"`, `&` are converted to HTML entities before reaching the page.
+
+**Verify:** repeat the steps from B.1 on `http://127.0.0.1:5000`. The customer is added, and its name is displayed as the literal text `<script>alert('XSS Attack!')</script>` instead of being executed.
+
+---
+
+### B.4 — Defence against SQL Injection (secure version)
+
+**Location:** Register, Login, and System screens in `TelecomSecure` (port 5000)
+
+**Defence used:** parameterised queries through SQLAlchemy's ORM (`User.query.filter_by(...)`, `Customer.query.filter(...)`). User input is sent to the database as a bound parameter, never as part of the SQL text — so it can never change the structure of the query. Strict server-side input validation (regex on usernames, emails, names) adds a second layer of protection.
+
+**Verify:** repeat the attacks from B.2.a, B.2.b and B.2.c on `http://127.0.0.1:5000`:
+- **Register:** the username `' OR '1'='1' --` is rejected by input validation ("letters, numbers, and underscore only").
+- **Login:** the same payload simply returns "User does not exist" — the quotes are stored as part of the literal username and never break the query.
+- **System search:** the UNION payload returns "No customers match …" — the entire string is matched literally against `first_name`/`last_name`.
 
 ---
 

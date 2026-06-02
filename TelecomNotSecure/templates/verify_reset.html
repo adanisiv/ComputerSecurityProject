@@ -19,7 +19,7 @@
 
         <div class="form-field">
           <label for="reset_value">Reset code</label>
-          <input id="reset_value" name="reset_value" placeholder="Paste the code from your email"
+          <input id="reset_value" name="reset_value" type="password" placeholder="Paste the code from your email"
                  value="{{ values.reset_value or '' }}"
                  class="{{ 'input-error' if errors.reset_value }}" autocomplete="off"
                  style="font-family:'SF Mono','Fira Code','Courier New',monospace; font-size:0.875rem; letter-spacing:0.03em;">

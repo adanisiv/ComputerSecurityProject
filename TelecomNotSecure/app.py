@@ -222,10 +222,15 @@ def send_mail(to_email: str, subject: str, body: str):
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.set_content(body)
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.send_message(msg)
+    if smtp_port == 465:
+        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+    else:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
 
 
 @app.route("/")
@@ -269,9 +274,13 @@ def register():
             return render_template("register.html", values=values, errors=errors)
 
         # SQLI VULNERABLE – raw string concatenation; no parameterization
-        existing = db.session.execute(
-            text(f"SELECT id FROM user WHERE username = '{username}' OR email = '{email}'")
-        ).first()
+        try:
+            existing = db.session.execute(
+                text(f"SELECT id FROM user WHERE username = '{username}' OR email = '{email}'")
+            ).first()
+        except Exception:
+            errors["username"] = "Invalid input."
+            return render_template("register.html", values=values, errors=errors)
 
         if existing:
             errors["username"] = "User or email already exists."
@@ -281,13 +290,18 @@ def register():
         hashed = password_to_hmac(password, salt)
 
         # SQLI VULNERABLE – INSERT with raw string concatenation
-        db.session.execute(
-            text(
-                f"INSERT INTO user (username, email, salt, password_hmac, failed_attempts) "
-                f"VALUES ('{username}', '{email}', '{salt}', '{hashed}', 0)"
+        try:
+            db.session.execute(
+                text(
+                    f"INSERT INTO user (username, email, salt, password_hmac, failed_attempts) "
+                    f"VALUES ('{username}', '{email}', '{salt}', '{hashed}', 0)"
+                )
             )
-        )
-        db.session.commit()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            errors["username"] = "Registration failed. Please try again."
+            return render_template("register.html", values=values, errors=errors)
 
         new_user = User.query.filter_by(username=username).first()
         if new_user:
@@ -329,32 +343,39 @@ def login():
             return render_template("login.html", values=values, errors=errors)
 
         # SQLI VULNERABLE – raw string concatenation
-        row = db.session.execute(
-            text(
-                f"SELECT id, username, email, salt, password_hmac, failed_attempts, locked_until "
-                f"FROM user WHERE username = '{username}'"
-            )
-        ).mappings().first()
+        try:
+            row = db.session.execute(
+                text(
+                    f"SELECT id, username, email, salt, password_hmac, failed_attempts, locked_until "
+                    f"FROM user WHERE username = '{username}'"
+                )
+            ).mappings().first()
+        except Exception:
+            errors["username"] = "Invalid credentials."
+            return render_template("login.html", values=values, errors=errors)
 
         if not row:
             errors["username"] = "User does not exist."
             return render_template("login.html", values=values, errors=errors)
 
         user = User.query.get(row["id"])
-        if is_locked(user):
-            errors["username"] = lock_message(user)
-            return render_template("login.html", values=values, errors=errors)
 
         # SQLi BYPASS: if the SQL returned a different user than was typed,
         # injection occurred → skip the password check and log straight in.
         # Attack: username = ' OR '1'='1' LIMIT 1 --
         # The query ignores the username and returns the first row in the table.
+        # This check runs BEFORE the lockout check so the bypass always works,
+        # demonstrating that the attacker completely sidesteps the security policy.
         if row["username"] != username:
             clear_lockout(user)
             db.session.commit()
             session["user_id"] = user.id
             flash("Logged in successfully.")
             return redirect(url_for("system_screen"))
+
+        if is_locked(user):
+            errors["username"] = lock_message(user)
+            return render_template("login.html", values=values, errors=errors)
 
         if password_to_hmac(password, user.salt) != user.password_hmac:
             register_failed_attempt(user)
@@ -513,45 +534,45 @@ def system_screen():
 
         if not errors:
             # SQLI VULNERABLE – id_number injected into WHERE clause
-            dup = db.session.execute(
-                text(f"SELECT id FROM customer WHERE id_number = '{id_number}'")
-            ).first()
+            try:
+                dup = db.session.execute(
+                    text(f"SELECT id FROM customer WHERE id_number = '{id_number}'")
+                ).first()
+            except Exception:
+                dup = None
 
             if dup:
                 errors["id_number"] = "ID number already exists."
             else:
-                # SQLI VULNERABLE – all three fields injected into INSERT VALUES
-                # XSS  VULNERABLE – first_name / last_name stored without sanitization
-                #
-                # Note: single quotes in name fields are doubled ('')  so the raw SQL
-                # does not break — this is the naive "fix" many developers apply.
-                # It prevents a SQL syntax error but DOES NOT prevent XSS because
-                # the content is still rendered raw via | safe in the template.
-                # The id_number field is left completely unescaped for the duplicate-
-                # check injection demo.
                 fn_sql = first_name.replace("'", "''")
                 ln_sql = last_name.replace("'", "''")
-                db.session.execute(
-                    text(
-                        f"INSERT INTO customer (first_name, last_name, id_number) "
-                        f"VALUES ('{fn_sql}', '{ln_sql}', '{id_number}')"
+                try:
+                    db.session.execute(
+                        text(
+                            f"INSERT INTO customer (first_name, last_name, id_number) "
+                            f"VALUES ('{fn_sql}', '{ln_sql}', '{id_number}')"
+                        )
                     )
-                )
-                db.session.commit()
-                # Markup() marks the string as safe → Jinja2 will NOT auto-escape it (XSS)
-                new_customer_name = Markup(first_name + " " + last_name)
+                    db.session.commit()
+                    # Markup() marks the string as safe → Jinja2 will NOT auto-escape it (XSS)
+                    new_customer_name = Markup(first_name + " " + last_name)
+                except Exception:
+                    db.session.rollback()
+                    errors["id_number"] = "Could not add customer. Please try again."
 
     # Search feature – also SQLI VULNERABLE (UNION-based data extraction)
     search = request.args.get("search", "").strip()
     if search:
         # SQLI VULNERABLE – search term injected into LIKE clause
-        # Attack: ' UNION SELECT id, username, email, id FROM user --
-        customers = db.session.execute(
-            text(
-                f"SELECT id, first_name, last_name, id_number FROM customer "
-                f"WHERE first_name LIKE '%{search}%' OR last_name LIKE '%{search}%'"
-            )
-        ).mappings().all()
+        try:
+            customers = db.session.execute(
+                text(
+                    f"SELECT id, first_name, last_name, id_number FROM customer "
+                    f"WHERE first_name LIKE '%{search}%' OR last_name LIKE '%{search}%'"
+                )
+            ).mappings().all()
+        except Exception:
+            customers = []
     else:
         customers = db.session.execute(
             text("SELECT id, first_name, last_name, id_number FROM customer ORDER BY id DESC")
