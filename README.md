@@ -2,6 +2,15 @@
 
 A Flask web application for a fictional telecom company, built as a Cyber Security course final project.
 
+## Authors
+
+| Name | ID |
+|---|---|
+| אדיר פפיאשוילי | 318624756 |
+| מרים בן דוד | 213212327 |
+| רועי לוי | 209229871 |
+| יוגב רפאל | 209490374 |
+
 The project has **two separate versions** of the same app:
 
 | Folder | What it is |
