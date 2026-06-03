@@ -196,11 +196,23 @@ Passwords must follow the rules in `password_policy.json`:
 
 **Dump all usernames and emails:**
 
+```
 ' UNION SELECT id, username, email, id FROM user --
+```
+
+**Dump usernames and hashed passwords (proves DB breach):**
+
+```
+' UNION SELECT id, username, password_hmac, id FROM user --
+```
 
 4. Click **Search**
 
-**What happens:** the customer list now shows every registered user's **username and email address**. The UNION keyword merges the results of two queries — the original customer search and a second query that reads from the user table.
+**What happens:** the customer list exposes every registered user's data directly from the database. The first payload shows usernames and emails. The second payload shows the stored password hashes — proving the attacker has fully breached the database and stolen the credentials.
+
+Even though the passwords appear as unreadable hashes (e.g. `9a3f7c2b1d4e...`), this is still a critical breach — an attacker can take these hashes offline and attempt to crack them.
+
+This is exactly what HMAC-SHA256 with a unique salt (used in the secure version) is designed to prevent: even if hashes are stolen, cracking them becomes computationally infeasible.
 
 **Defence (secure version):** try the same on `http://127.0.0.1:5000/system`. The result is simply "No customers match…" — the entire search string is treated as a literal name to search for, not as SQL code.
 
