@@ -2,6 +2,8 @@
 
 A Flask web application for a fictional telecom company, built as a Cyber Security course final project.
 
+**Repository:** https://github.com/adanisiv/ComputerSecurityProject
+
 ## Authors
 
 | Name | ID |
