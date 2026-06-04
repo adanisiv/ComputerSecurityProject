@@ -209,28 +209,34 @@ def password_to_hmac(password: str, salt: str) -> str:
 
 
 def send_mail(to_email: str, subject: str, body: str):
-    smtp_host = os.getenv("SMTP_HOST", "")
+    """Send an email via SMTP. Returns True on success, False if SMTP is not
+    configured or the send fails for any reason. Never raises."""
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER", "")
     smtp_pass = os.getenv("SMTP_PASS", "")
     mail_from = os.getenv("MAIL_FROM", "no-reply@communication-ltd.com")
     if not smtp_host:
-        print(f"[DEV EMAIL] To: {to_email} | Subject: {subject} | Body: {body}")
-        return
+        return False
     msg = EmailMessage()
     msg["From"] = mail_from
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.set_content(body)
-    if smtp_port == 465:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port) as server:
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-    else:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
+    try:
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10) as server:
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+        return True
+    except Exception as exc:
+        print(f"[email send failed] {exc}", flush=True)
+        return False
 
 
 @app.route("/")
@@ -455,8 +461,13 @@ def forgot_password():
         token_sha1 = hashlib.sha1(random_bytes).hexdigest()
         user.reset_token_sha1 = token_sha1
         db.session.commit()
-        send_mail(user.email, "Communication_LTD reset code", f"Your SHA-1 reset value: {token_sha1}")
-        flash("Reset value sent to your email.")
+        sent = send_mail(user.email, "Communication_LTD reset code",
+                         f"Your SHA-1 reset value: {token_sha1}")
+        if sent:
+            flash("Reset code sent to your email.")
+        else:
+            # Fallback when SMTP is not configured — show on screen so the flow works
+            flash(f"Your reset code: {token_sha1}")
         return redirect(url_for("verify_reset"))
     return render_template("forgot_password.html", values={}, errors={})
 
